@@ -235,6 +235,58 @@ Authorization: Bearer <jwt_token>
       "optimal_send_time": "2024-01-15T14:00:00Z",
       "timezone": "UTC"
     }
+  },
+  "metadata": {
+    "ai_provider": "gpt",
+    "confidence_score": 0.85,
+    "recommendation_id": "uuid"
+  }
+}
+```
+
+### AI Provider Management
+
+#### Get AI Provider Status
+```http
+GET /ai/providers
+Authorization: Bearer <access_token>
+```
+
+#### Update AI Provider Configuration
+```http
+PUT /ai/providers/{provider_id}
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "isActive": true,
+  "config": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "maxTokens": 1000
+  }
+}
+```
+
+#### Get Recommendation History
+```http
+GET /ai/recommendations/history?limit=20&offset=0
+Authorization: Bearer <access_token>
+```
+
+#### Provide Feedback on Recommendation
+```http
+POST /ai/recommendations/{recommendation_id}/feedback
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "feedback": "positive",
+  "campaignResults": {
+    "openRate": 0.25,
+    "clickRate": 0.08,
+    "conversionRate": 0.03,
+    "revenue": 1500
   }
 }
 ```

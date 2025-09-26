@@ -212,6 +212,21 @@ export const api = createApi({
     getCampaigns: builder.query<Campaign[], void>({
       query: () => 'campaigns',
     }),
+    
+    // AI endpoints
+    getAIProviders: builder.query<AIProvider[], void>({
+      query: () => 'ai/providers',
+    }),
+    getRecommendationHistory: builder.query<RecommendationHistory[], { limit?: number; offset?: number }>({
+      query: ({ limit = 20, offset = 0 }) => `ai/recommendations/history?limit=${limit}&offset=${offset}`,
+    }),
+    provideFeedback: builder.mutation<void, { recommendationId: string; feedback: FeedbackData }>({
+      query: ({ recommendationId, feedback }) => ({
+        url: `ai/recommendations/${recommendationId}/feedback`,
+        method: 'POST',
+        body: feedback,
+      }),
+    }),
   }),
 });
 ```
@@ -463,5 +478,151 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   return <>{children}</>;
+};
+```
+
+## AI Provider Management
+
+### AI Provider Status Component
+```typescript
+const AIProviderStatus = () => {
+  const { data: providers, isLoading } = useGetAIProvidersQuery();
+  
+  if (isLoading) return <LoadingSpinner />;
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {providers?.map(provider => (
+        <div key={provider.id} className="p-4 border rounded-lg">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">{provider.name}</h3>
+            <div className={`w-2 h-2 rounded-full ${
+              provider.isActive ? 'bg-green-500' : 'bg-gray-400'
+            }`} />
+          </div>
+          <div className="mt-2 text-sm text-gray-600">
+            <p>Model: {provider.config.model}</p>
+            <p>Success Rate: {provider.performanceMetrics?.successRate || 0}%</p>
+            <p>Avg Response: {provider.performanceMetrics?.averageResponseTime || 0}ms</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+### Recommendation Feedback Component
+```typescript
+const RecommendationFeedback = ({ recommendationId }: { recommendationId: string }) => {
+  const [provideFeedback] = useProvideFeedbackMutation();
+  const [feedback, setFeedback] = useState<'positive' | 'negative' | 'neutral'>('neutral');
+  const [campaignResults, setCampaignResults] = useState({
+    openRate: 0,
+    clickRate: 0,
+    conversionRate: 0,
+    revenue: 0
+  });
+  
+  const handleSubmit = async () => {
+    try {
+      await provideFeedback({
+        recommendationId,
+        feedback: {
+          feedback,
+          campaignResults
+        }
+      }).unwrap();
+      
+      toast.success('Feedback submitted successfully');
+    } catch (error) {
+      toast.error('Failed to submit feedback');
+    }
+  };
+  
+  return (
+    <div className="p-4 border rounded-lg">
+      <h3 className="font-semibold mb-4">Provide Feedback</h3>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Overall Feedback</label>
+          <select 
+            value={feedback} 
+            onChange={(e) => setFeedback(e.target.value as any)}
+            className="w-full p-2 border rounded"
+          >
+            <option value="positive">Positive</option>
+            <option value="neutral">Neutral</option>
+            <option value="negative">Negative</option>
+          </select>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Open Rate</label>
+            <input
+              type="number"
+              step="0.01"
+              value={campaignResults.openRate}
+              onChange={(e) => setCampaignResults(prev => ({
+                ...prev,
+                openRate: parseFloat(e.target.value)
+              }))}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Click Rate</label>
+            <input
+              type="number"
+              step="0.01"
+              value={campaignResults.clickRate}
+              onChange={(e) => setCampaignResults(prev => ({
+                ...prev,
+                clickRate: parseFloat(e.target.value)
+              }))}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Conversion Rate</label>
+            <input
+              type="number"
+              step="0.01"
+              value={campaignResults.conversionRate}
+              onChange={(e) => setCampaignResults(prev => ({
+                ...prev,
+                conversionRate: parseFloat(e.target.value)
+              }))}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Revenue</label>
+            <input
+              type="number"
+              value={campaignResults.revenue}
+              onChange={(e) => setCampaignResults(prev => ({
+                ...prev,
+                revenue: parseFloat(e.target.value)
+              }))}
+              className="w-full p-2 border rounded"
+            />
+          </div>
+        </div>
+        
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+        >
+          Submit Feedback
+        </button>
+      </div>
+    </div>
+  );
 };
 ```

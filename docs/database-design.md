@@ -382,4 +382,100 @@ export class DataEvent {
   dataSource: DataSource;
 }
 ```
+
+### RecommendationHistory Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './user.entity';
+import { Conversation } from './conversation.entity';
+
+@Entity('recommendation_history')
+export class RecommendationHistory {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  userId: string;
+
+  @Column({ nullable: true })
+  conversationId: string;
+
+  @Column('text')
+  originalQuery: string;
+
+  @Column('jsonb')
+  aiRecommendation: Record<string, any>;
+
+  @Column({ nullable: true })
+  userAccepted: boolean;
+
+  @Column('jsonb', { nullable: true })
+  campaignResults: {
+    openRate?: number;
+    clickRate?: number;
+    conversionRate?: number;
+    revenue?: number;
+  };
+
+  @Column({ nullable: true })
+  userFeedback: 'positive' | 'negative' | 'neutral';
+
+  @Column({ nullable: true })
+  aiProvider: string; // 'gpt', 'custom', 'hybrid'
+
+  @Column('jsonb', { nullable: true })
+  context: Record<string, any>;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @ManyToOne(() => Conversation, { nullable: true })
+  @JoinColumn({ name: 'conversationId' })
+  conversation: Conversation;
+}
+```
+
+### AIProviderConfig Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+
+@Entity('ai_provider_config')
+export class AIProviderConfig {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  providerName: string; // 'gpt', 'custom', 'hybrid'
+
+  @Column()
+  isActive: boolean;
+
+  @Column('jsonb')
+  config: {
+    apiKey?: string;
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    customSettings?: Record<string, any>;
+  };
+
+  @Column('jsonb', { nullable: true })
+  performanceMetrics: {
+    averageResponseTime?: number;
+    successRate?: number;
+    costPerRequest?: number;
+    accuracy?: number;
+  };
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+}
+```
 ```

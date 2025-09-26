@@ -75,9 +75,9 @@ graph TB
 - **Components**: ChatGateway, ChatService, MessageService, ConversationEntity
 
 ### 3. AI Module
-- **Purpose**: Generate contextual marketing recommendations
-- **Features**: Natural language processing, data analysis, campaign suggestions
-- **Components**: AIRecommendationService, QueryParserService, MLModelService
+- **Purpose**: Generate contextual marketing recommendations using AI abstraction layer
+- **Features**: Natural language processing, data analysis, campaign suggestions, learning from feedback
+- **Components**: AIService, AIProvider (GPT/Custom), LearningService, RecommendationHistoryService
 
 ### 4. Data Integration Module
 - **Purpose**: Connect and sync with external data sources
@@ -96,7 +96,7 @@ sequenceDiagram
     participant U as User
     participant F as Frontend
     participant B as Backend (NestJS)
-    participant AI as AI Module
+    participant AI as AI Service
     participant DI as Data Integration Module
     participant CM as Campaign Module
     participant CH as Channel Services
@@ -107,7 +107,7 @@ sequenceDiagram
     AI->>DI: Request relevant data
     DI->>DI: Query GTM, Facebook, Shopify
     DI-->>AI: Return aggregated data
-    AI->>AI: Analyze data & generate recommendations
+    AI->>AI: Generate recommendations via AI Provider
     AI-->>B: Stream JSON recommendations
     B-->>F: Stream recommendations via WebSocket
     F-->>U: Display recommendations
@@ -191,61 +191,67 @@ graph TB
 - Message queuing for reliability
 - Intent classification for routing
 
-### 2. AI Recommendation Engine Architecture (NestJS)
+### 2. AI Module Architecture (NestJS)
 
 ```mermaid
 graph TB
     subgraph "NestJS AI Module"
-        A[AIRecommendationService]
-        B[QueryParserService]
-        C[DataContextService]
-        D[MLModelService]
-        E[RecommendationGenerator]
+        A[AIService]
+        B[AIProvider Interface]
+        C[LearningService]
+        D[RecommendationHistoryService]
     end
     
-    subgraph "ML Models"
-        F[CustomerSegmentationModel]
-        G[ChannelOptimizationModel]
-        H[TimingPredictionModel]
-        I[ContentGenerationModel]
+    subgraph "AI Provider Implementations"
+        E[GPTProvider]
+        F[CustomModelProvider]
+        G[HybridProvider]
     end
     
-    subgraph "Data Processing"
-        J[DataAggregatorService]
-        K[HistoricalDataService]
-        L[FeatureEngineeringService]
+    subgraph "AI Operations"
+        H[Query Parsing]
+        I[Recommendation Generation]
+        J[Content Generation]
+        K[Data Analysis]
+    end
+    
+    subgraph "Learning & Improvement"
+        L[Feedback Collection]
+        M[Performance Tracking]
+        N[Model Improvement]
+        O[Context Enhancement]
     end
     
     subgraph "TypeORM Repositories"
-        M[DataSourceRepository]
-        N[CampaignRepository]
-        O[UserRepository]
+        P[RecommendationHistoryRepository]
+        Q[CampaignRepository]
+        R[UserRepository]
     end
     
     A --> B
-    B --> C
-    C --> D
-    D --> F
-    D --> G
-    D --> H
-    D --> I
-    F --> E
-    G --> E
-    H --> E
-    I --> E
-    J --> L
-    K --> L
-    L --> D
+    B --> E
+    B --> F
+    B --> G
+    A --> C
+    A --> D
+    E --> H
+    E --> I
+    E --> J
+    E --> K
+    C --> L
     C --> M
     C --> N
     C --> O
+    A --> P
+    A --> Q
+    A --> R
 ```
 
 **Components:**
-- **Query Parser**: Extracts intent and entities from natural language
-- **Data Context Builder**: Aggregates relevant data from connected sources
-- **ML Pipeline**: Processes data through multiple specialized models
-- **Recommendation Generator**: Creates actionable campaign suggestions
+- **AIService**: Main service that orchestrates AI operations
+- **AIProvider Interface**: Abstraction layer for different AI providers (GPT, Custom Models, etc.)
+- **LearningService**: Handles feedback collection and model improvement
+- **RecommendationHistoryService**: Tracks recommendations and outcomes for learning
 
 ### 3. Data Integration Service Details (NestJS)
 
@@ -372,7 +378,7 @@ sequenceDiagram
     participant Cache as Redis
     
     CG->>CS: Process user query
-    CS->>AI: Process natural language
+    CS->>AI: Process natural language query
     AI->>Cache: Check cached data
     alt Cache Miss
         AI->>DI: Request fresh data
@@ -383,7 +389,7 @@ sequenceDiagram
     else Cache Hit
         Cache-->>AI: Return cached data
     end
-    AI->>AI: Generate recommendations
+    AI->>AI: Generate recommendations via AI Provider
     AI-->>CS: Stream recommendations
     CS-->>CG: Stream to client
     CG->>CM: Create campaign request
