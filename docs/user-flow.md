@@ -43,17 +43,16 @@ flowchart TD
     B -->|Yes| D[Dashboard]
     C --> E[Email Verification]
     E --> F[Profile Setup]
-    F --> G[Company Information]
-    G --> H[Data Source Selection]
-    H --> I[Connection Setup]
-    I --> D
+    F --> G[Data Source Selection]
+    G --> H[Connection Setup]
+    H --> D
 ```
 
 ### 2. Data Source Connection Flow
 
 ```mermaid
 flowchart TD
-    A[Dashboard] --> B[Data Sources Tab]
+    A[User Dashboard] --> B[Data Sources Tab]
     B --> C[Select GTM]
     C --> D[GTM Setup Wizard]
     D --> E[Enter GTM Container ID]
@@ -86,7 +85,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Chat Interface] --> B[User Types Question]
+    A[User Chat Interface] --> B[User Types Question]
     B --> C[AI Processing]
     C --> D[Data Analysis]
     D --> E[Generate Recommendations]
@@ -109,29 +108,29 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Campaign Ready] --> B[Channel Selection]
+    A[User Campaign Ready] --> B[Channel Selection]
     B --> C[Email Campaign]
     B --> D[SMS Campaign]
     B --> E[Push Notification]
     B --> F[WhatsApp Campaign]
     
     C --> G[Email Template]
-    G --> H[Audience Segmentation]
+    G --> H[User Audience Segmentation]
     H --> I[Schedule Email]
     
     D --> J[SMS Template]
-    J --> K[Phone Number List]
+    J --> K[User Phone Number List]
     K --> L[Schedule SMS]
     
     E --> M[Push Template]
-    M --> N[Device Targeting]
+    M --> N[User Device Targeting]
     N --> O[Schedule Push]
     
     F --> P[WhatsApp Template]
-    P --> Q[Contact List]
+    P --> Q[User Contact List]
     Q --> R[Schedule WhatsApp]
     
-    I --> S[Campaign Monitoring]
+    I --> S[User Campaign Monitoring]
     L --> S
     O --> S
     R --> S
