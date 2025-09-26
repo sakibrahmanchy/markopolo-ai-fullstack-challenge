@@ -8,128 +8,125 @@ PulseHub is a real-time, AI-powered marketing platform that connects multiple da
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        A[Web App - React/TypeScript]
-        B[Mobile App - React Native]
+    subgraph "Frontend"
+        A[React App - TypeScript]
     end
     
-    subgraph "API Gateway & Load Balancer"
-        C[NGINX/CloudFlare]
-        D[API Gateway - Express.js]
-    end
-    
-    subgraph "Core Services"
-        E[Chat Service - Socket.io]
-        F[AI Recommendation Engine]
-        G[Campaign Management Service]
-        H[Data Integration Service]
+    subgraph "Backend - NestJS"
+        B[Auth Module]
+        C[Chat Module]
+        D[AI Module]
+        E[Campaign Module]
+        F[Data Integration Module]
     end
     
     subgraph "Data Sources"
-        I[Google Tag Manager]
-        J[Facebook Pixel]
-        K[Shopify API]
+        G[Google Tag Manager]
+        H[Facebook Pixel]
+        I[Shopify API]
     end
     
     subgraph "Channel Services"
-        L[Email Service - SendGrid]
-        M[SMS Service - Twilio]
-        N[Push Service - Firebase]
-        O[WhatsApp Service - Meta API]
+        J[Email Service - SendGrid]
+        K[SMS Service - Twilio]
+        L[Push Service - Firebase]
+        M[WhatsApp Service - Meta API]
     end
     
     subgraph "Data Layer"
-        P[PostgreSQL - Primary DB]
-        Q[Redis - Caching & Sessions]
-        R[Elasticsearch - Search & Analytics]
+        N[PostgreSQL - Primary DB]
+        O[Redis - Caching & Sessions]
     end
     
-    subgraph "Infrastructure"
-        S[Docker Containers]
-        T[Kubernetes/AWS ECS]
-        U[Monitoring - Prometheus/Grafana]
-    end
-    
+    A --> B
     A --> C
-    B --> C
-    C --> D
-    D --> E
-    D --> F
-    D --> G
-    D --> H
-    H --> I
-    H --> J
-    H --> K
-    G --> L
-    G --> M
-    G --> N
-    G --> O
-    E --> P
-    F --> P
-    G --> P
-    H --> P
-    E --> Q
-    F --> Q
-    G --> R
-    H --> R
-    S --> T
-    T --> U
+    A --> D
+    A --> E
+    A --> F
+    F --> G
+    F --> H
+    F --> I
+    E --> J
+    E --> K
+    E --> L
+    E --> M
+    B --> N
+    C --> N
+    D --> N
+    E --> N
+    F --> N
+    B --> O
+    C --> O
+    D --> O
+    E --> O
+    F --> O
 ```
 
-## Core Components
+## Core NestJS Modules
 
-### 1. Chat Interface Service
-- **Technology**: Socket.io, Node.js
+### 1. Auth Module
+- **Purpose**: User authentication and authorization
+- **Features**: JWT tokens, user registration/login, session management
+- **Components**: AuthController, AuthService, JwtStrategy, UserEntity
+
+### 2. Chat Module
 - **Purpose**: Real-time chat communication
 - **Features**: Message streaming, typing indicators, conversation history
+- **Components**: ChatGateway, ChatService, MessageService, ConversationEntity
 
-### 2. AI Recommendation Engine
-- **Technology**: OpenAI GPT-4, Custom ML models
+### 3. AI Module
 - **Purpose**: Generate contextual marketing recommendations
 - **Features**: Natural language processing, data analysis, campaign suggestions
+- **Components**: AIRecommendationService, QueryParserService, MLModelService
 
-### 3. Data Integration Service
-- **Technology**: Node.js, REST APIs, Webhooks
+### 4. Data Integration Module
 - **Purpose**: Connect and sync with external data sources
 - **Features**: Real-time data ingestion, data transformation, error handling
+- **Components**: DataIntegrationService, GTMAdapterService, FacebookPixelAdapterService, ShopifyAdapterService
 
-### 4. Campaign Management Service
-- **Technology**: Node.js, Express
+### 5. Campaign Module
 - **Purpose**: Create, schedule, and execute marketing campaigns
 - **Features**: Multi-channel deployment, A/B testing, performance tracking
+- **Components**: CampaignService, CampaignBuilderService, ChannelHandlerService
 
 ## Data Flow
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant C as Chat Interface
-    participant AI as AI Engine
-    participant D as Data Service
-    participant CM as Campaign Manager
+    participant F as Frontend
+    participant B as Backend (NestJS)
+    participant AI as AI Module
+    participant DI as Data Integration Module
+    participant CM as Campaign Module
     participant CH as Channel Services
     
-    U->>C: Ask question about customers
-    C->>AI: Process natural language query
-    AI->>D: Request relevant data
-    D->>D: Query GTM, Facebook, Shopify
-    D-->>AI: Return aggregated data
+    U->>F: Ask question about customers
+    F->>B: Send message via WebSocket
+    B->>AI: Process natural language query
+    AI->>DI: Request relevant data
+    DI->>DI: Query GTM, Facebook, Shopify
+    DI-->>AI: Return aggregated data
     AI->>AI: Analyze data & generate recommendations
-    AI-->>C: Stream JSON recommendations
-    C-->>U: Display recommendations
-    U->>C: Select channels & customize
-    C->>CM: Create campaign
+    AI-->>B: Stream JSON recommendations
+    B-->>F: Stream recommendations via WebSocket
+    F-->>U: Display recommendations
+    U->>F: Select channels & customize
+    F->>B: Create campaign request
+    B->>CM: Create campaign
     CM->>CH: Deploy to selected channels
     CH-->>CM: Confirm deployment
-    CM-->>C: Campaign launched
-    C-->>U: Campaign status update
+    CM-->>B: Campaign launched
+    B-->>F: Campaign status update
+    F-->>U: Campaign status update
 ```
 
 ## Technology Stack
 
 ### Backend
 - **Runtime**: Node.js 18+
-- **Framework**: Express.js
+- **Framework**: NestJS
+- **ORM**: TypeORM
 - **Real-time**: Socket.io
 - **Database**: PostgreSQL 14+
 - **Cache**: Redis 6+
@@ -144,40 +141,48 @@ sequenceDiagram
 
 ### Infrastructure
 - **Containerization**: Docker
-- **Orchestration**: Kubernetes
-- **Cloud**: AWS/GCP
-- **CDN**: CloudFlare
-- **Monitoring**: Prometheus + Grafana
+- **Database**: PostgreSQL with TypeORM
+- **Caching**: Redis
+- **Development**: Local development environment
 
 ## Detailed Component Architecture
 
-### 1. Chat Service Deep Dive
+### 1. Chat Service Deep Dive (NestJS)
 
 ```mermaid
 graph TB
-    subgraph "Chat Service Components"
-        A[WebSocket Handler]
-        B[Message Queue - Redis]
-        C[Conversation Manager]
-        D[Context Processor]
-        E[Response Streamer]
+    subgraph "NestJS Chat Module"
+        A[ChatGateway - WebSocket]
+        B[ChatService]
+        C[MessageService]
+        D[ConversationService]
+        E[ContextService]
     end
     
     subgraph "Message Processing Pipeline"
-        F[Message Validator]
-        G[Intent Classifier]
-        H[Context Builder]
-        I[AI Query Formatter]
+        F[MessageValidator]
+        G[IntentClassifier]
+        H[ContextBuilder]
+        I[AIQueryFormatter]
     end
     
-    A --> F
-    F --> G
-    G --> H
-    H --> I
-    I --> B
+    subgraph "TypeORM Entities"
+        J[Conversation Entity]
+        K[Message Entity]
+        L[User Entity]
+    end
+    
+    A --> B
     B --> C
     C --> D
     D --> E
+    C --> F
+    F --> G
+    G --> H
+    H --> I
+    B --> J
+    C --> K
+    D --> L
 ```
 
 **Key Features:**
@@ -186,45 +191,54 @@ graph TB
 - Message queuing for reliability
 - Intent classification for routing
 
-### 2. AI Recommendation Engine Architecture
+### 2. AI Recommendation Engine Architecture (NestJS)
 
 ```mermaid
 graph TB
-    subgraph "AI Processing Pipeline"
-        A[Query Parser]
-        B[Data Context Builder]
-        C[ML Model Pipeline]
-        D[Recommendation Generator]
-        E[Response Formatter]
+    subgraph "NestJS AI Module"
+        A[AIRecommendationService]
+        B[QueryParserService]
+        C[DataContextService]
+        D[MLModelService]
+        E[RecommendationGenerator]
     end
     
     subgraph "ML Models"
-        F[Customer Segmentation Model]
-        G[Channel Optimization Model]
-        H[Timing Prediction Model]
-        I[Content Generation Model]
+        F[CustomerSegmentationModel]
+        G[ChannelOptimizationModel]
+        H[TimingPredictionModel]
+        I[ContentGenerationModel]
     end
     
     subgraph "Data Processing"
-        J[Real-time Data Aggregator]
-        K[Historical Data Processor]
-        L[Feature Engineering]
+        J[DataAggregatorService]
+        K[HistoricalDataService]
+        L[FeatureEngineeringService]
+    end
+    
+    subgraph "TypeORM Repositories"
+        M[DataSourceRepository]
+        N[CampaignRepository]
+        O[UserRepository]
     end
     
     A --> B
     B --> C
-    C --> F
-    C --> G
-    C --> H
-    C --> I
-    F --> D
-    G --> D
-    H --> D
-    I --> D
-    D --> E
+    C --> D
+    D --> F
+    D --> G
+    D --> H
+    D --> I
+    F --> E
+    G --> E
+    H --> E
+    I --> E
     J --> L
     K --> L
-    L --> C
+    L --> D
+    C --> M
+    C --> N
+    C --> O
 ```
 
 **Components:**
@@ -233,38 +247,53 @@ graph TB
 - **ML Pipeline**: Processes data through multiple specialized models
 - **Recommendation Generator**: Creates actionable campaign suggestions
 
-### 3. Data Integration Service Details
+### 3. Data Integration Service Details (NestJS)
 
 ```mermaid
 graph TB
-    subgraph "Data Source Adapters"
-        A[GTM Adapter]
-        B[Facebook Pixel Adapter]
-        C[Shopify Adapter]
+    subgraph "NestJS Data Integration Module"
+        A[DataIntegrationService]
+        B[GTMAdapterService]
+        C[FacebookPixelAdapterService]
+        D[ShopifyAdapterService]
     end
     
     subgraph "Data Processing Layer"
-        D[Data Validator]
-        E[Schema Mapper]
-        F[Data Transformer]
-        G[Event Processor]
+        E[DataValidatorService]
+        F[SchemaMapperService]
+        G[DataTransformerService]
+        H[EventProcessorService]
     end
     
-    subgraph "Storage Layer"
-        H[Raw Data Store]
-        I[Processed Data Store]
-        J[Analytics Store]
+    subgraph "TypeORM Entities & Repositories"
+        I[DataSourceEntity]
+        J[DataEventEntity]
+        K[DataSourceRepository]
+        L[DataEventRepository]
     end
     
+    subgraph "External APIs"
+        M[GTM API]
+        N[Facebook API]
+        O[Shopify API]
+    end
+    
+    A --> B
+    A --> C
     A --> D
-    B --> D
-    C --> D
+    B --> M
+    C --> N
+    D --> O
+    B --> E
+    C --> E
     D --> E
     E --> F
     F --> G
     G --> H
-    G --> I
-    G --> J
+    H --> I
+    H --> J
+    A --> K
+    A --> L
 ```
 
 **Data Flow:**
@@ -274,61 +303,76 @@ graph TB
 4. **Storage**: Store in appropriate data stores
 5. **Processing**: Real-time analytics and feature generation
 
-### 4. Campaign Management Service Architecture
+### 4. Campaign Management Service Architecture (NestJS)
 
 ```mermaid
 graph TB
-    subgraph "Campaign Core"
-        A[Campaign Builder]
-        B[Template Engine]
-        C[Scheduler]
-        D[Execution Engine]
+    subgraph "NestJS Campaign Module"
+        A[CampaignService]
+        B[CampaignBuilderService]
+        C[TemplateEngineService]
+        D[SchedulerService]
+        E[ExecutionEngineService]
     end
     
     subgraph "Channel Handlers"
-        E[Email Handler]
-        F[SMS Handler]
-        G[Push Handler]
-        H[WhatsApp Handler]
+        F[EmailHandlerService]
+        G[SMSHandlerService]
+        H[PushHandlerService]
+        I[WhatsAppHandlerService]
     end
     
     subgraph "Monitoring & Analytics"
-        I[Performance Tracker]
-        J[Real-time Metrics]
-        K[Alert System]
-        L[Optimization Engine]
+        J[PerformanceTrackerService]
+        K[RealTimeMetricsService]
+        L[AlertSystemService]
+        M[OptimizationEngineService]
+    end
+    
+    subgraph "TypeORM Entities & Repositories"
+        N[CampaignEntity]
+        O[CampaignChannelEntity]
+        P[CampaignRepository]
+        Q[CampaignChannelRepository]
     end
     
     A --> B
     B --> C
     C --> D
     D --> E
-    D --> F
-    D --> G
-    D --> H
+    E --> F
+    E --> G
+    E --> H
     E --> I
-    F --> I
-    G --> I
-    H --> I
+    F --> J
+    G --> J
+    H --> J
     I --> J
     J --> K
-    J --> L
+    K --> L
+    K --> M
+    A --> N
+    A --> O
+    A --> P
+    A --> Q
 ```
 
-## Microservices Communication
+## NestJS Module Communication
 
-### Service-to-Service Communication
+### Inter-Module Communication
 
 ```mermaid
 sequenceDiagram
+    participant CG as Chat Gateway
     participant CS as Chat Service
-    participant AI as AI Engine
-    participant DI as Data Integration
-    participant CM as Campaign Manager
+    participant AI as AI Service
+    participant DI as Data Integration Service
+    participant CM as Campaign Service
     participant DB as Database
     participant Cache as Redis
     
-    CS->>AI: Process user query
+    CG->>CS: Process user query
+    CS->>AI: Process natural language
     AI->>Cache: Check cached data
     alt Cache Miss
         AI->>DI: Request fresh data
@@ -341,9 +385,10 @@ sequenceDiagram
     end
     AI->>AI: Generate recommendations
     AI-->>CS: Stream recommendations
-    CS->>CM: Create campaign
+    CS-->>CG: Stream to client
+    CG->>CM: Create campaign request
     CM->>DB: Store campaign
-    CM-->>CS: Campaign created
+    CM-->>CG: Campaign created
 ```
 
 ## Data Flow Patterns
@@ -377,20 +422,20 @@ graph TB
 
 ## Scalability Considerations
 
-### Horizontal Scaling
-- Microservices architecture
-- Stateless services
-- Load balancing across multiple instances
-- Database read replicas
-
 ### Performance Optimization
 - Redis caching layer
-- CDN for static assets
 - Database indexing and query optimization
-- Connection pooling
+- Connection pooling with TypeORM
+- Efficient NestJS module communication
 
 ### Reliability
 - Circuit breakers for external services
 - Retry mechanisms with exponential backoff
 - Graceful degradation
-- Health checks and monitoring
+- Error handling and logging
+
+### Development
+- Modular NestJS architecture
+- TypeORM for database operations
+- Local development environment
+- Docker for containerization

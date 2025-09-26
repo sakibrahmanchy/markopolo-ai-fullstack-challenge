@@ -1,4 +1,4 @@
-# Database Design
+# Database Design - TypeORM Entities
 
 ## Core Entity Relationships
 
@@ -13,113 +13,373 @@ erDiagram
     DATA_SOURCES ||--o{ DATA_EVENTS : generates
 ```
 
-## Core Tables
+## TypeORM Entity Definitions
 
-### Users & Authentication
-```sql
--- Users table
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    company_name VARCHAR(255),
-    is_verified BOOLEAN DEFAULT FALSE,
-    last_login_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+### User Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Conversation } from './conversation.entity';
+import { DataSource } from './data-source.entity';
+import { Campaign } from './campaign.entity';
+import { UserSession } from './user-session.entity';
 
--- User sessions table for JWT token management
-CREATE TABLE user_sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    refresh_token_hash VARCHAR(255) NOT NULL,
-    access_token_jti VARCHAR(255) UNIQUE, -- JWT ID for access token
-    expires_at TIMESTAMP NOT NULL,
-    is_revoked BOOLEAN DEFAULT FALSE,
-    ip_address INET,
-    user_agent TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
--- JWT token blacklist for logout functionality
-CREATE TABLE token_blacklist (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    jti VARCHAR(255) UNIQUE NOT NULL, -- JWT ID
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+  @Column({ unique: true })
+  email: string;
 
-### Data Sources & Conversations
-```sql
--- Data sources table
-CREATE TABLE data_sources (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    source_type VARCHAR(50) NOT NULL, -- 'gtm', 'facebook_pixel', 'shopify'
-    name VARCHAR(255) NOT NULL,
-    config JSONB NOT NULL,
-    status VARCHAR(20) DEFAULT 'active',
-    last_sync_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+  @Column()
+  passwordHash: string;
 
--- Conversations table
-CREATE TABLE conversations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(255),
-    status VARCHAR(20) DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+  @Column({ nullable: true })
+  firstName: string;
 
--- Messages table
-CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    conversation_id UUID REFERENCES conversations(id),
-    role VARCHAR(20) NOT NULL, -- 'user', 'assistant'
-    content TEXT NOT NULL,
-    metadata JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+  @Column({ nullable: true })
+  lastName: string;
 
-### Campaigns & Channels
-```sql
--- Campaigns table
-CREATE TABLE campaigns (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    conversation_id UUID REFERENCES conversations(id),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    status VARCHAR(20) DEFAULT 'draft', -- 'draft', 'scheduled', 'running', 'paused', 'completed'
-    scheduled_at TIMESTAMP,
-    started_at TIMESTAMP,
-    ended_at TIMESTAMP,
-    config JSONB NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+  @Column({ nullable: true })
+  companyName: string;
 
--- Campaign channels table
-CREATE TABLE campaign_channels (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    campaign_id UUID REFERENCES campaigns(id),
-    channel_type VARCHAR(50) NOT NULL, -- 'email', 'sms', 'push', 'whatsapp'
-    config JSONB NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    sent_count INTEGER DEFAULT 0,
-    delivered_count INTEGER DEFAULT 0,
-    opened_count INTEGER DEFAULT 0,
-    clicked_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+  @Column({ default: false })
+  isVerified: boolean;
+
+  @Column({ nullable: true })
+  lastLoginAt: Date;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @OneToMany(() => Conversation, conversation => conversation.user)
+  conversations: Conversation[];
+
+  @OneToMany(() => DataSource, dataSource => dataSource.user)
+  dataSources: DataSource[];
+
+  @OneToMany(() => Campaign, campaign => campaign.user)
+  campaigns: Campaign[];
+
+  @OneToMany(() => UserSession, session => session.user)
+  sessions: UserSession[];
+}
+```
+
+### UserSession Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './user.entity';
+
+@Entity('user_sessions')
+export class UserSession {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  userId: string;
+
+  @Column()
+  refreshTokenHash: string;
+
+  @Column({ unique: true, nullable: true })
+  accessTokenJti: string;
+
+  @Column()
+  expiresAt: Date;
+
+  @Column({ default: false })
+  isRevoked: boolean;
+
+  @Column({ nullable: true })
+  ipAddress: string;
+
+  @Column({ nullable: true })
+  userAgent: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @ManyToOne(() => User, user => user.sessions, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+}
+```
+
+### TokenBlacklist Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from './user.entity';
+
+@Entity('token_blacklist')
+export class TokenBlacklist {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ unique: true })
+  jti: string;
+
+  @Column()
+  userId: string;
+
+  @Column()
+  expiresAt: Date;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+}
+
+### DataSource Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { User } from './user.entity';
+import { DataEvent } from './data-event.entity';
+
+@Entity('data_sources')
+export class DataSource {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  userId: string;
+
+  @Column()
+  sourceType: 'gtm' | 'facebook_pixel' | 'shopify';
+
+  @Column()
+  name: string;
+
+  @Column('jsonb')
+  config: Record<string, any>;
+
+  @Column({ default: 'active' })
+  status: 'active' | 'inactive' | 'error';
+
+  @Column({ nullable: true })
+  lastSyncAt: Date;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @ManyToOne(() => User, user => user.dataSources, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @OneToMany(() => DataEvent, event => event.dataSource)
+  events: DataEvent[];
+}
+```
+
+### Conversation Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { User } from './user.entity';
+import { Message } from './message.entity';
+
+@Entity('conversations')
+export class Conversation {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  userId: string;
+
+  @Column({ nullable: true })
+  title: string;
+
+  @Column({ default: 'active' })
+  status: 'active' | 'archived' | 'deleted';
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @ManyToOne(() => User, user => user.conversations, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @OneToMany(() => Message, message => message.conversation)
+  messages: Message[];
+}
+```
+
+### Message Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Conversation } from './conversation.entity';
+
+@Entity('messages')
+export class Message {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  conversationId: string;
+
+  @Column()
+  role: 'user' | 'assistant';
+
+  @Column('text')
+  content: string;
+
+  @Column('jsonb', { nullable: true })
+  metadata: Record<string, any>;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @ManyToOne(() => Conversation, conversation => conversation.messages, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'conversationId' })
+  conversation: Conversation;
+}
+
+### Campaign Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { User } from './user.entity';
+import { Conversation } from './conversation.entity';
+import { CampaignChannel } from './campaign-channel.entity';
+
+@Entity('campaigns')
+export class Campaign {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  userId: string;
+
+  @Column({ nullable: true })
+  conversationId: string;
+
+  @Column()
+  name: string;
+
+  @Column('text', { nullable: true })
+  description: string;
+
+  @Column({ default: 'draft' })
+  status: 'draft' | 'scheduled' | 'running' | 'paused' | 'completed';
+
+  @Column({ nullable: true })
+  scheduledAt: Date;
+
+  @Column({ nullable: true })
+  startedAt: Date;
+
+  @Column({ nullable: true })
+  endedAt: Date;
+
+  @Column('jsonb')
+  config: Record<string, any>;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @ManyToOne(() => User, user => user.campaigns, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @ManyToOne(() => Conversation, { nullable: true })
+  @JoinColumn({ name: 'conversationId' })
+  conversation: Conversation;
+
+  @OneToMany(() => CampaignChannel, channel => channel.campaign)
+  channels: CampaignChannel[];
+}
+```
+
+### CampaignChannel Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Campaign } from './campaign.entity';
+
+@Entity('campaign_channels')
+export class CampaignChannel {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  campaignId: string;
+
+  @Column()
+  channelType: 'email' | 'sms' | 'push' | 'whatsapp';
+
+  @Column('jsonb')
+  config: Record<string, any>;
+
+  @Column({ default: 'pending' })
+  status: 'pending' | 'sending' | 'sent' | 'failed';
+
+  @Column({ default: 0 })
+  sentCount: number;
+
+  @Column({ default: 0 })
+  deliveredCount: number;
+
+  @Column({ default: 0 })
+  openedCount: number;
+
+  @Column({ default: 0 })
+  clickedCount: number;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @ManyToOne(() => Campaign, campaign => campaign.channels, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'campaignId' })
+  campaign: Campaign;
+}
+```
+
+### DataEvent Entity
+```typescript
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { DataSource } from './data-source.entity';
+
+@Entity('data_events')
+export class DataEvent {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  dataSourceId: string;
+
+  @Column()
+  eventType: string;
+
+  @Column('jsonb')
+  eventData: Record<string, any>;
+
+  @Column({ nullable: true })
+  processedAt: Date;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @ManyToOne(() => DataSource, dataSource => dataSource.events, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'dataSourceId' })
+  dataSource: DataSource;
+}
 ```
 ```

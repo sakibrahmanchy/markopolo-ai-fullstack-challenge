@@ -24,17 +24,16 @@ PulseHub is a Perplexity-like chat interface that enables users to connect vario
 3. [Database Design](./docs/database-design.md)
 4. [API Design](./docs/api-design.md)
 5. [Frontend Design](./docs/frontend-design.md)
-6. [Implementation Roadmap](./docs/implementation-roadmap.md)
 
 ## Quick Start
 
 ```bash
-# Backend setup
+# Backend setup (NestJS)
 cd backend
 npm install
-npm run dev
+npm run start:dev
 
-# Frontend setup
+# Frontend setup (React)
 cd frontend
 npm install
 npm run dev
@@ -50,9 +49,9 @@ npm run dev
 
 ## Technology Stack
 
-- **Backend**: Node.js, Express, Socket.io, PostgreSQL
+- **Backend**: NestJS, TypeORM, Socket.io, PostgreSQL
 - **Frontend**: React, TypeScript, Tailwind CSS
 - **AI/ML**: OpenAI GPT-4, Custom recommendation engine
 - **Data Sources**: REST APIs, Webhooks, Real-time streaming
-- **Infrastructure**: Docker, AWS/GCP, Redis for caching
+- **Infrastructure**: Docker, Redis for caching
 
