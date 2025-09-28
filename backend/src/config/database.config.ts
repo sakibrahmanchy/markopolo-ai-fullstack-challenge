@@ -19,12 +19,51 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
   constructor(private configService: ConfigService) {}
 
   createTypeOrmOptions(): TypeOrmModuleOptions {
+    const databaseUrl = this.configService.get('DATABASE_URL');
+    console.log('Database URL:', databaseUrl);
+    
+    // Use DATABASE_URL if available, otherwise fall back to individual parameters
+    if (databaseUrl) {
+      return {
+        type: 'postgres',
+        url: databaseUrl,
+        entities: [
+          User,
+          UserSession,
+          TokenBlacklist,
+          DataSource,
+          Conversation,
+          Message,
+          Campaign,
+          CampaignChannel,
+          DataEvent,
+          RecommendationHistory,
+          AIProviderConfig,
+          OAuthSession
+        ],
+        synchronize: this.configService.get('NODE_ENV') !== 'production',
+        logging: this.configService.get('NODE_ENV') === 'development',
+        ssl: false, // Disable SSL for Docker environment
+        retryAttempts: 10,
+        retryDelay: 3000,
+      };
+    }
+    
+    console.log({
+      host: this.configService.get('DATABASE_HOST', 'localhost'),
+      port: this.configService.get('DATABASE_PORT', 5432),
+      username: this.configService.get('DATABASE_USERNAME', 'postgres'),
+      password: this.configService.get('DATABASE_PASSWORD', 'postgres'),
+      database: this.configService.get('DATABASE_NAME', 'pulsehub'),
+    })
+
+    // Fallback to individual parameters
     return {
       type: 'postgres',
       host: this.configService.get('DATABASE_HOST', 'localhost'),
       port: this.configService.get('DATABASE_PORT', 5432),
       username: this.configService.get('DATABASE_USERNAME', 'postgres'),
-      password: this.configService.get('DATABASE_PASSWORD', 'password'),
+      password: this.configService.get('DATABASE_PASSWORD', 'postgres'),
       database: this.configService.get('DATABASE_NAME', 'pulsehub'),
       entities: [
         User,
@@ -40,9 +79,11 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
         AIProviderConfig,
         OAuthSession
       ],
-      synchronize: this.configService.get('NODE_ENV') === 'development',
-      // logging: this.configService.get('NODE_ENV') === 'development',
-      ssl: this.configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
+      synchronize: this.configService.get('NODE_ENV') !== 'production',
+      logging: this.configService.get('NODE_ENV') === 'development',
+      ssl: false, // Disable SSL for Docker environment
+      retryAttempts: 10,
+      retryDelay: 3000,
     };
   }
 }

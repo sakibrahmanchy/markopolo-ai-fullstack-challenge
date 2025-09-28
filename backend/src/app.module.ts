@@ -8,7 +8,6 @@ import { DataIntegrationModule } from './modules/data-integration/data-integrati
 // import { CampaignModule } from './modules/campaign/campaign.module';
 import { UserModule } from './modules/user/user.module';
 import { DatabaseConfig } from './config/database.config';
-import { RedisModule } from './common/redis/redis.module';
 
 @Module({
   imports: [
@@ -19,7 +18,6 @@ import { RedisModule } from './common/redis/redis.module';
     TypeOrmModule.forRootAsync({
       useClass: DatabaseConfig,
     }),
-    RedisModule,
     AuthModule,
     UserModule,
     ChatModule,  

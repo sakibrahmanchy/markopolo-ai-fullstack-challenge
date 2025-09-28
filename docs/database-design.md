@@ -32,7 +32,7 @@ export class User {
   email: string;
 
   @Column()
-  passwordHash: string;
+  password: string;
 
   @Column({ nullable: true })
   firstName: string;
@@ -42,12 +42,6 @@ export class User {
 
   @Column({ nullable: true })
   companyName: string;
-
-  @Column({ default: false })
-  isVerified: boolean;
-
-  @Column({ nullable: true })
-  lastLoginAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -83,22 +77,10 @@ export class UserSession {
   userId: string;
 
   @Column()
-  refreshTokenHash: string;
-
-  @Column({ unique: true, nullable: true })
-  accessTokenJti: string;
+  refreshToken: string;
 
   @Column()
   expiresAt: Date;
-
-  @Column({ default: false })
-  isRevoked: boolean;
-
-  @Column({ nullable: true })
-  ipAddress: string;
-
-  @Column({ nullable: true })
-  userAgent: string;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -123,20 +105,13 @@ export class TokenBlacklist {
   id: string;
 
   @Column({ unique: true })
-  jti: string;
-
-  @Column()
-  userId: string;
+  token: string;
 
   @Column()
   expiresAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
 }
 
 ### DataSource Entity
@@ -162,11 +137,8 @@ export class DataSource {
   @Column('jsonb')
   config: Record<string, any>;
 
-  @Column({ default: 'active' })
-  status: 'active' | 'inactive' | 'error';
-
-  @Column({ nullable: true })
-  lastSyncAt: Date;
+  @Column({ default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

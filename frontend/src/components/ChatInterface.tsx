@@ -1,46 +1,33 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../store';
-import Sidebar from './Sidebar';
+import React, { useEffect, useState } from 'react';
 import ChatArea from './ChatArea';
-import DataSourcesPanel from './DataSourcesPanel';
+import { useParams } from 'react-router-dom';
 
 const ChatInterface: React.FC = () => {
-  const [activePanel, setActivePanel] = useState<'chat' | 'data-sources'>('chat');
+  const { id } = useParams();
   const [currentQuery, setCurrentQuery] = useState<string>('');
-  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(id);
 
   const handleConversationCreated = (id: string) => {
     setCurrentConversationId(id);
   };
 
-  const handleSelectConversation = (id: string) => {
+  useEffect(() => {
     setCurrentConversationId(id);
-    setActivePanel('chat');
-  };
+  }, [id])
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-white w-full">
       {/* Left Sidebar */}
-      <Sidebar 
-        activePanel={activePanel} 
-        setActivePanel={setActivePanel}
-        onSelectConversation={handleSelectConversation}
-        currentConversationId={currentConversationId}
-      />
+
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        {activePanel === 'chat' ? (
           <ChatArea 
             currentQuery={currentQuery}
             setCurrentQuery={setCurrentQuery}
             conversationId={currentConversationId}
             onConversationCreated={handleConversationCreated}
           />
-        ) : (
-          <DataSourcesPanel />
-        )}
       </div>
     </div>
   );

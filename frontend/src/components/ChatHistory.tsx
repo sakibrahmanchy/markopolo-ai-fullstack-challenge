@@ -9,6 +9,9 @@ interface ChatHistoryProps {
 const ChatHistory: React.FC<ChatHistoryProps> = ({ onSelectConversation, activeConversationId }) => {
   const { data: conversations, isLoading } = useGetConversationsQuery(undefined);
 
+  console.log({
+    activeConversationId
+  })
   if (isLoading) {
     return (
       <div className="p-4">

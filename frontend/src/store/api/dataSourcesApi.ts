@@ -65,6 +65,12 @@ export const dataSourcesApi = createApi({
       query: (id: string) => `/data-sources/${id}/events`,
       providesTags: (_result, _error, id) => [{ type: 'DataEvent', id }],
     }),
+    addDummyData: builder.mutation({
+      query: () => ({
+        url: '/data-sources/dummy-data/seed-all',
+        method: 'POST',
+      }),
+    }),
   }),
 });
 
@@ -77,4 +83,5 @@ export const {
   useTestConnectionMutation,
   useSyncDataSourceMutation,
   useGetDataSourceEventsQuery,
+  useAddDummyDataMutation,
 } = dataSourcesApi;

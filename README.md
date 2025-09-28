@@ -27,6 +27,37 @@ PulseHub is a Perplexity-like chat interface that enables users to connect vario
 
 ## Quick Start
 
+### Option 1: Docker (Recommended)
+
+The easiest way to run PulseHub is using Docker Compose:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd pulsehub
+
+# Run the startup script
+./start.sh
+```
+
+Or manually with Docker Compose:
+
+```bash
+# Create .env file with your OpenAI API key
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+
+# Start all services
+docker-compose up --build
+```
+
+This will start:
+- Frontend at http://localhost:3000
+- Backend API at http://localhost:5900
+- PostgreSQL database at localhost:5432
+
+### Option 2: Manual Setup
+
 ```bash
 # Backend setup (NestJS)
 cd backend

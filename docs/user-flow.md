@@ -39,46 +39,34 @@ journey
 ```mermaid
 flowchart TD
     A[Landing Page] --> B{User Authenticated?}
-    B -->|No| C[Sign Up/Login]
-    B -->|Yes| D[Dashboard]
-    C --> E[Email Verification]
-    E --> F[Profile Setup]
-    F --> G[Data Source Selection]
-    G --> H[Connection Setup]
-    H --> D
+    B -->|No| C[Sign Up/Login Modal]
+    B -->|Yes| D[Chat Interface]
+    C --> E[Auto-login after Signup]
+    E --> D
+    D --> F[Ask AI Questions]
+    F --> G{Has Data Sources?}
+    G -->|No| H[Connect Data Sources]
+    G -->|Yes| I[Get Campaign Recommendations]
+    H --> J[Add Dummy Data]
+    J --> I
 ```
 
 ### 2. Data Source Connection Flow
 
 ```mermaid
 flowchart TD
-    A[User Dashboard] --> B[Data Sources Tab]
-    B --> C[Select GTM]
-    C --> D[GTM Setup Wizard]
-    D --> E[Enter GTM Container ID]
-    E --> F[Test Connection]
-    F --> G{Connection Success?}
-    G -->|Yes| H[Save GTM Config]
-    G -->|No| I[Error Handling]
-    I --> E
-    H --> J[Select Facebook Pixel]
-    J --> K[Facebook Auth Flow]
-    K --> L[Grant Permissions]
-    L --> M[Test Pixel Connection]
-    M --> N{Connection Success?}
-    N -->|Yes| O[Save Pixel Config]
-    N -->|No| P[Error Handling]
-    P --> K
-    O --> Q[Select Shopify]
-    Q --> R[Shopify OAuth]
-    R --> S[Select Store]
-    S --> T[Test Shopify Connection]
-    T --> U{Connection Success?}
-    U -->|Yes| V[Save Shopify Config]
-    U -->|No| W[Error Handling]
-    W --> R
-    V --> X[All Sources Connected]
-    X --> Y[Ready for Chat]
+    A[Chat Interface] --> B[Ask about Campaigns]
+    B --> C[AI: No Data Sources Connected]
+    C --> D[Show Connect Data Sources Button]
+    D --> E[Data Sources Panel]
+    E --> F[Add Dummy Data Button]
+    F --> G[Generate GTM Dummy Data]
+    G --> H[Generate Facebook Pixel Data]
+    H --> I[Generate Shopify Data]
+    I --> J[Data Sources Connected]
+    J --> K[Return to Chat]
+    K --> L[Ask AI Questions Again]
+    L --> M[Get Campaign Recommendations]
 ```
 
 ### 3. Chat Interface Flow
@@ -86,130 +74,101 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[User Chat Interface] --> B[User Types Question]
-    B --> C[AI Processing]
-    C --> D[Data Analysis]
-    D --> E[Generate Recommendations]
-    E --> F[Stream JSON Response]
-    F --> G[Display Recommendations]
-    G --> H{User Satisfied?}
-    H -->|Yes| I[Select Channels]
-    H -->|No| J[Refine Question]
-    J --> C
-    I --> K[Customize Campaign]
-    K --> L[Preview Campaign]
-    L --> M{Approve Campaign?}
-    M -->|Yes| N[Schedule/Launch]
-    M -->|No| O[Edit Campaign]
-    O --> K
-    N --> P[Campaign Monitoring]
+    B --> C[Send Message to Backend]
+    C --> D[AI Intent Analysis]
+    D --> E{Requires Auth?}
+    E -->|Yes| F[Show Login/Signup Modal]
+    E -->|No| G[AI Processing]
+    F --> H[User Authenticates]
+    H --> G
+    G --> I[Data Analysis from Sources]
+    I --> J[Generate Campaign Recommendations]
+    J --> K[Stream JSON Response via SSE]
+    K --> L[Display Multiple Campaigns]
+    L --> M[User Reviews Recommendations]
+    M --> N[User Can Ask Follow-up Questions]
+    N --> O[Continue Conversation]
 ```
 
-### 4. Campaign Execution Flow
+### 4. Campaign Recommendation Flow
 
 ```mermaid
 flowchart TD
-    A[User Campaign Ready] --> B[Channel Selection]
-    B --> C[Email Campaign]
-    B --> D[SMS Campaign]
-    B --> E[Push Notification]
-    B --> F[WhatsApp Campaign]
-    
-    C --> G[Email Template]
-    G --> H[User Audience Segmentation]
-    H --> I[Schedule Email]
-    
-    D --> J[SMS Template]
-    J --> K[User Phone Number List]
-    K --> L[Schedule SMS]
-    
-    E --> M[Push Template]
-    M --> N[User Device Targeting]
-    N --> O[Schedule Push]
-    
-    F --> P[WhatsApp Template]
-    P --> Q[User Contact List]
-    Q --> R[Schedule WhatsApp]
-    
-    I --> S[User Campaign Monitoring]
-    L --> S
-    O --> S
-    R --> S
-    S --> T[Performance Analytics]
-    T --> U[Optimization Suggestions]
+    A[User Asks Campaign Question] --> B[AI Analyzes Intent]
+    B --> C[Check User Data Sources]
+    C --> D[Analyze User Data]
+    D --> E[Identify User Segments]
+    E --> F[Generate Multiple Campaigns]
+    F --> G[Stream Campaign Recommendations]
+    G --> H[Display Campaign Cards]
+    H --> I[Each Campaign Shows:]
+    I --> J[Target Audience Segment]
+    I --> K[Recommended Channels]
+    I --> L[Channel Messages]
+    I --> M[Timing Information]
+    H --> N[User Reviews Recommendations]
+    N --> O[User Can Ask Follow-up]
+    O --> P[Continue Conversation]
 ```
 
-## User Personas
+## Current User Experience
 
-### Primary Persona: Marketing Manager
-- **Goals**: Increase conversion rates, optimize ad spend, improve customer engagement
-- **Pain Points**: Data silos, manual campaign creation, lack of real-time insights
-- **Use Cases**: 
-  - "Show me customers who abandoned cart in the last 24 hours"
-  - "Create a re-engagement campaign for inactive users"
-  - "What's the best time to send emails to my segment?"
+### Anonymous Users
+- Can ask general questions in chat
+- See authentication prompts for advanced features
+- Can sign up or log in via modals
 
-### Secondary Persona: E-commerce Owner
-- **Goals**: Drive sales, reduce churn, increase customer lifetime value
-- **Pain Points**: Limited marketing resources, complex analytics
-- **Use Cases**:
-  - "Target high-value customers with exclusive offers"
-  - "Send personalized product recommendations"
-  - "Create urgency campaigns for low-stock items"
+### Authenticated Users
+- Full access to chat interface
+- Can connect data sources and generate dummy data
+- Receive AI-powered campaign recommendations
+- Can ask follow-up questions about recommendations
 
-## Key User Interactions
+## Current User Interactions
 
-### 1. Natural Language Queries
-- "Who are my most engaged customers this week?"
-- "Create a campaign for users who viewed but didn't buy"
-- "What's the optimal send time for my email list?"
-- "Show me customers likely to churn in the next 30 days"
+### 1. Chat Interface
+- Ask questions about marketing campaigns
+- Receive AI-powered recommendations
+- View multiple campaign suggestions with audience segments
+- See channel-specific recommendations (email, SMS, push, WhatsApp)
 
-### 2. Data Exploration
-- Real-time dashboard with connected data sources
-- Interactive charts and visualizations
-- Drill-down capabilities for detailed insights
+### 2. Data Sources
+- Connect GTM, Facebook Pixel, and Shopify
+- Generate dummy data for testing
+- View connected data sources status
 
-### 3. Campaign Customization
-- Drag-and-drop campaign builder
-- A/B testing capabilities
-- Real-time preview across all channels
+### 3. Authentication
+- Sign up with email and password
+- Login with existing credentials
+- Auto-login after signup
+- Persistent session management
 
-### 4. Performance Monitoring
-- Live campaign performance metrics
-- Automated alerts and notifications
-- ROI tracking and optimization suggestions
+## Current Error Handling
 
-## Error Handling & Edge Cases
+### Authentication Errors
+- Clear error messages for invalid credentials
+- Token expiration handling with refresh
+- Graceful fallback to anonymous mode
 
-### Connection Failures
-- Graceful degradation when data sources are unavailable
-- Clear error messages with resolution steps
-- Retry mechanisms for failed connections
+### Data Source Errors
+- Validation of data source configurations
+- Error messages for failed connections
+- Fallback to dummy data generation
 
-### Data Quality Issues
-- Validation of incoming data
-- Fallback to cached data when real-time data is unavailable
-- User notifications for data quality concerns
+### AI Service Errors
+- Fallback responses when AI is unavailable
+- Clear error messages for API failures
+- Graceful degradation of features
 
-### Campaign Failures
-- Rollback mechanisms for failed campaigns
-- Detailed error logging and reporting
-- Alternative channel suggestions when primary channels fail
-
-## Success Metrics
+## Current Success Metrics
 
 ### User Engagement
-- Daily/Monthly Active Users
-- Session duration and frequency
-- Feature adoption rates
+- Chat message frequency
+- Authentication conversion rate
+- Data source connection rate
 
-### Campaign Performance
-- Campaign success rate
-- Average conversion rate improvement
-- Time to campaign creation
-
-### Data Integration
-- Data source uptime
-- Data freshness and accuracy
+### System Performance
 - API response times
+- Database query performance
+- SSE streaming reliability
 

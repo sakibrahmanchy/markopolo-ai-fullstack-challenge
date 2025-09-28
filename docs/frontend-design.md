@@ -2,11 +2,12 @@
 
 ## Technology Stack
 - **Framework**: React 18 with TypeScript
-- **Styling**: Tailwind CSS + Headless UI
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
 - **State Management**: Redux Toolkit + RTK Query
-- **Real-time**: Socket.io-client
+- **Real-time**: Fetch API with Server-Sent Events (SSE)
 - **Routing**: React Router v6
-- **Forms**: React Hook Form + Zod validation
+- **HTTP Client**: RTK Query with fetchBaseQuery
 
 ## Component Architecture
 
@@ -16,41 +17,43 @@ graph TB
         A[App.tsx]
         B[Router]
         C[Redux Store]
-        D[Socket Provider]
+        D[RTK Query API]
     end
     
     subgraph "Layout Components"
-        E[Header]
-        F[Sidebar]
-        G[MainLayout]
+        E[Sidebar]
+        F[ChatInterface]
+        G[DataSourcesPanel]
     end
     
     subgraph "Feature Components"
-        H[ChatInterface]
-        I[DataSources]
-        J[Campaigns]
-        K[Dashboard]
+        H[ChatArea]
+        I[DataSourcesList]
+        J[ConnectDataSource]
+        K[LoginModal]
+        L[SignupModal]
     end
     
-    subgraph "Shared Components"
-        L[Button]
-        M[Modal]
-        N[Loading]
-        O[ErrorBoundary]
+    subgraph "Hooks & Services"
+        M[useStreamingResponse]
+        N[useSocket]
+        O[Auth Slice]
+        P[API Slices]
     end
     
     A --> B
+    B --> E
+    B --> F
     B --> G
-    G --> E
-    G --> F
-    G --> H
+    F --> H
     G --> I
     G --> J
-    G --> K
+    H --> K
     H --> L
-    I --> M
-    J --> N
-    K --> O
+    H --> M
+    C --> O
+    C --> P
+    P --> D
 ```
 
 ## Key Components
@@ -60,23 +63,34 @@ graph TB
 // ChatInterface.tsx
 interface ChatInterfaceProps {
   conversationId?: string;
-  onCampaignCreate: (campaign: Campaign) => void;
+  onConversationCreated?: (id: string) => void;
+}
+
+// ChatArea component
+interface ChatAreaProps {
+  currentQuery: string;
+  setCurrentQuery: (query: string) => void;
+  conversationId?: string;
+  onConversationCreated?: (id: string) => void;
 }
 
 // Message component
-interface MessageProps {
+interface ChatMessage {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
+  timestamp: string;
+  conversationId?: string;
   metadata?: any;
 }
 
 // Streaming response handler
-const useStreamingResponse = (conversationId: string) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+const useStreamingResponse = (conversationId: string, onComplete?: (message: string) => void) => {
+  const [streamingMessage, setStreamingMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [campaignRecommendations, setCampaignRecommendations] = useState<any>(null);
   
-  // Socket.io integration for real-time streaming
+  // Fetch API with SSE for real-time streaming
 };
 ```
 
@@ -85,34 +99,56 @@ const useStreamingResponse = (conversationId: string) => {
 // DataSourcesList.tsx
 interface DataSource {
   id: string;
-  type: 'gtm' | 'facebook_pixel' | 'shopify';
+  userId: string;
+  sourceType: 'gtm' | 'facebook_pixel' | 'shopify';
   name: string;
-  status: 'connected' | 'disconnected' | 'error';
-  lastSync: Date;
+  config: Record<string, any>;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Connection wizard
-const ConnectionWizard = ({ sourceType }: { sourceType: string }) => {
-  // Multi-step form for connecting data sources
+// DataSourcesPanel component
+const DataSourcesPanel = () => {
+  // Main data sources management interface
+};
+
+// ConnectDataSource component
+const ConnectDataSource = () => {
+  // Data source connection interface
 };
 ```
 
-### 3. Campaign Builder
+### 3. Authentication Components
 ```typescript
-// CampaignBuilder.tsx
-interface CampaignForm {
-  name: string;
-  description: string;
-  channels: ChannelType[];
-  audience: AudienceConfig;
-  content: ContentConfig;
-  schedule: ScheduleConfig;
+// LoginModal.tsx
+interface LoginModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSwitchToSignup: () => void;
 }
 
-// Channel-specific forms
-const EmailChannelForm = ({ config, onChange }: ChannelFormProps) => {
-  // Email template editor, subject line, etc.
-};
+// SignupModal.tsx
+interface SignupModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSwitchToLogin: () => void;
+}
+
+// Auth form data
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+interface SignupFormData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+}
 ```
 
 ## State Management
@@ -121,11 +157,7 @@ const EmailChannelForm = ({ config, onChange }: ChannelFormProps) => {
 ```typescript
 interface RootState {
   auth: AuthState;
-  user: UserState;
-  conversations: ConversationsState;
-  dataSources: DataSourcesState;
-  campaigns: CampaignsState;
-  ui: UIState;
+  api: any; // RTK Query API state
 }
 
 interface AuthState {
@@ -137,26 +169,29 @@ interface AuthState {
   tokenExpiry: number | null;
 }
 
-interface UserState {
-  profile: UserProfile;
-  preferences: UserPreferences;
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  createdAt: string;
 }
 
 // RTK Query APIs
-export const api = createApi({
-  reducerPath: 'api',
+export const authApi = createApi({
+  reducerPath: 'authApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: '/api/v1',
+    baseUrl: `${import.meta.env.VITE_API_URL || 'http://localhost:5900'}`,
     prepareHeaders: (headers, { getState }) => {
-      const accessToken = selectAccessToken(getState());
-      if (accessToken) {
-        headers.set('authorization', `Bearer ${accessToken}`);
+      const token = (getState() as RootState).auth.accessToken;
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
       }
       return headers;
     },
   }),
   endpoints: (builder) => ({
-    // Auth endpoints
     register: builder.mutation<AuthResponse, RegisterRequest>({
       query: (credentials) => ({
         url: 'auth/register',
@@ -185,46 +220,69 @@ export const api = createApi({
         body,
       }),
     }),
-    
-    // User endpoints
-    getProfile: builder.query<UserProfile, void>({
-      query: () => 'user/profile',
-    }),
-    
-    // Conversation endpoints
-    getConversations: builder.query<Conversation[], void>({
-      query: () => 'conversations',
-    }),
-    sendMessage: builder.mutation<Message, SendMessageRequest>({
-      query: ({ conversationId, content }) => ({
-        url: `conversations/${conversationId}/messages`,
+  }),
+});
+
+export const chatApi = createApi({
+  reducerPath: 'chatApi',
+  baseQuery: fetchBaseQuery({
+    baseUrl: `${import.meta.env.VITE_API_URL || 'http://localhost:5900'}`,
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as RootState).auth.accessToken;
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
+  endpoints: (builder) => ({
+    createConversation: builder.mutation<Conversation, CreateConversationRequest>({
+      query: (body) => ({
+        url: 'conversations',
         method: 'POST',
-        body: { content, role: 'user' },
+        body,
       }),
     }),
-    
-    // Data sources endpoints
+    getConversation: builder.query<Conversation, string>({
+      query: (id) => `conversations/${id}`,
+    }),
+    sendMessage: builder.mutation<Message, SendMessageRequest>({
+      query: ({ conversationId, content, role }) => ({
+        url: `conversations/${conversationId}/messages`,
+        method: 'POST',
+        body: { content, role },
+      }),
+    }),
+  }),
+});
+
+export const dataSourcesApi = createApi({
+  reducerPath: 'dataSourcesApi',
+  baseQuery: fetchBaseQuery({
+    baseUrl: `${import.meta.env.VITE_API_URL || 'http://localhost:5900'}`,
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as RootState).auth.accessToken;
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
+  endpoints: (builder) => ({
     getDataSources: builder.query<DataSource[], void>({
       query: () => 'data-sources',
     }),
-    
-    // Campaign endpoints
-    getCampaigns: builder.query<Campaign[], void>({
-      query: () => 'campaigns',
-    }),
-    
-    // AI endpoints
-    getAIProviders: builder.query<AIProvider[], void>({
-      query: () => 'ai/providers',
-    }),
-    getRecommendationHistory: builder.query<RecommendationHistory[], { limit?: number; offset?: number }>({
-      query: ({ limit = 20, offset = 0 }) => `ai/recommendations/history?limit=${limit}&offset=${offset}`,
-    }),
-    provideFeedback: builder.mutation<void, { recommendationId: string; feedback: FeedbackData }>({
-      query: ({ recommendationId, feedback }) => ({
-        url: `ai/recommendations/${recommendationId}/feedback`,
+    createDataSource: builder.mutation<DataSource, CreateDataSourceRequest>({
+      query: (body) => ({
+        url: 'data-sources',
         method: 'POST',
-        body: feedback,
+        body,
+      }),
+    }),
+    addDummyData: builder.mutation<any, string>({
+      query: (sourceType) => ({
+        url: `data-sources/dummy-data/bulk/${sourceType}`,
+        method: 'POST',
       }),
     }),
   }),
@@ -233,29 +291,41 @@ export const api = createApi({
 
 ## Real-time Features
 
-### Socket.io Integration
+### Server-Sent Events (SSE) Integration
 ```typescript
-// useSocket.ts
-export const useSocket = () => {
-  const socket = useRef<Socket>();
-  
-  useEffect(() => {
-    socket.current = io(process.env.REACT_APP_SOCKET_URL!);
-    
-    socket.current.on('message_stream', (data) => {
-      // Handle streaming AI responses
-      dispatch(addStreamingMessage(data));
+// useStreamingResponse.ts
+export const useStreamingResponse = (conversationId: string, onComplete?: (message: string) => void) => {
+  const [streamingMessage, setStreamingMessage] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [campaignRecommendations, setCampaignRecommendations] = useState<any>(null);
+  const accessToken = useSelector((state: RootState) => state.auth.accessToken);
+
+  const startStreaming = async () => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/conversations/${conversationId}/stream`, {
+      headers: {
+        'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+        'Accept': 'text/event-stream',
+      },
     });
-    
-    socket.current.on('campaign_update', (data) => {
-      // Handle campaign status updates
-      dispatch(updateCampaign(data));
-    });
-    
-    return () => socket.current?.disconnect();
-  }, []);
-  
-  return socket.current;
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6));
+          // Handle different message types
+        }
+      }
+    }
+  };
 };
 ```
 
@@ -282,59 +352,37 @@ export const useSocket = () => {
 
 ### 1. Message Streaming
 ```typescript
-const MessageStream = ({ conversationId }: { conversationId: string }) => {
+// Actual implementation uses fetch API with SSE parsing
+const useStreamingResponse = (conversationId: string) => {
   const [streamingMessage, setStreamingMessage] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   
-  useEffect(() => {
-    const eventSource = new EventSource(`/api/v1/conversations/${conversationId}/stream`);
+  const startStreaming = async () => {
+    const response = await fetch(`/conversations/${conversationId}/stream`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'chunk') {
-        setStreamingMessage(prev => prev + data.content);
-      }
-    };
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
     
-    return () => eventSource.close();
-  }, [conversationId]);
-  
-  return <div>{streamingMessage}</div>;
-};
-```
-
-### 2. Campaign Preview
-```typescript
-const CampaignPreview = ({ campaign }: { campaign: Campaign }) => {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {campaign.channels.map(channel => (
-        <ChannelPreview 
-          key={channel.type} 
-          channel={channel} 
-          content={campaign.content[channel.type]}
-        />
-      ))}
-    </div>
-  );
-};
-```
-
-### 3. Data Source Status
-```typescript
-const DataSourceStatus = ({ source }: { source: DataSource }) => {
-  const statusColors = {
-    connected: 'text-green-500',
-    disconnected: 'text-gray-500',
-    error: 'text-red-500'
+    // Parse SSE chunks and update streaming message
   };
-  
+};
+```
+
+### 2. Campaign Recommendations Display
+```typescript
+// Campaign recommendations are displayed in ChatArea component
+// Shows multiple campaigns with audience segments and channel recommendations
+const CampaignRecommendations = ({ recommendations }: { recommendations: any }) => {
   return (
-    <div className="flex items-center space-x-2">
-      <div className={`w-2 h-2 rounded-full ${statusColors[source.status]}`} />
-      <span>{source.name}</span>
-      <span className="text-sm text-gray-500">
-        Last sync: {formatDate(source.lastSync)}
-      </span>
+    <div className="space-y-4">
+      {recommendations.data.campaigns.map((campaign: any, index: number) => (
+        <div key={campaign.id || index} className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+          <h6 className="font-medium text-purple-900">{campaign.name}</h6>
+          {/* Audience and channel information */}
+        </div>
+      ))}
     </div>
   );
 };
@@ -481,148 +529,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 ```
 
-## AI Provider Management
+## Current Implementation Features
 
-### AI Provider Status Component
-```typescript
-const AIProviderStatus = () => {
-  const { data: providers, isLoading } = useGetAIProvidersQuery();
-  
-  if (isLoading) return <LoadingSpinner />;
-  
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {providers?.map(provider => (
-        <div key={provider.id} className="p-4 border rounded-lg">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">{provider.name}</h3>
-            <div className={`w-2 h-2 rounded-full ${
-              provider.isActive ? 'bg-green-500' : 'bg-gray-400'
-            }`} />
-          </div>
-          <div className="mt-2 text-sm text-gray-600">
-            <p>Model: {provider.config.model}</p>
-            <p>Success Rate: {provider.performanceMetrics?.successRate || 0}%</p>
-            <p>Avg Response: {provider.performanceMetrics?.averageResponseTime || 0}ms</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-```
+### Authentication Flow
+- Login/Signup modals with form validation
+- JWT token management with refresh tokens
+- Auto-login after signup
+- Persistent authentication state
 
-### Recommendation Feedback Component
-```typescript
-const RecommendationFeedback = ({ recommendationId }: { recommendationId: string }) => {
-  const [provideFeedback] = useProvideFeedbackMutation();
-  const [feedback, setFeedback] = useState<'positive' | 'negative' | 'neutral'>('neutral');
-  const [campaignResults, setCampaignResults] = useState({
-    openRate: 0,
-    clickRate: 0,
-    conversionRate: 0,
-    revenue: 0
-  });
-  
-  const handleSubmit = async () => {
-    try {
-      await provideFeedback({
-        recommendationId,
-        feedback: {
-          feedback,
-          campaignResults
-        }
-      }).unwrap();
-      
-      toast.success('Feedback submitted successfully');
-    } catch (error) {
-      toast.error('Failed to submit feedback');
-    }
-  };
-  
-  return (
-    <div className="p-4 border rounded-lg">
-      <h3 className="font-semibold mb-4">Provide Feedback</h3>
-      
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-2">Overall Feedback</label>
-          <select 
-            value={feedback} 
-            onChange={(e) => setFeedback(e.target.value as any)}
-            className="w-full p-2 border rounded"
-          >
-            <option value="positive">Positive</option>
-            <option value="neutral">Neutral</option>
-            <option value="negative">Negative</option>
-          </select>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Open Rate</label>
-            <input
-              type="number"
-              step="0.01"
-              value={campaignResults.openRate}
-              onChange={(e) => setCampaignResults(prev => ({
-                ...prev,
-                openRate: parseFloat(e.target.value)
-              }))}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Click Rate</label>
-            <input
-              type="number"
-              step="0.01"
-              value={campaignResults.clickRate}
-              onChange={(e) => setCampaignResults(prev => ({
-                ...prev,
-                clickRate: parseFloat(e.target.value)
-              }))}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Conversion Rate</label>
-            <input
-              type="number"
-              step="0.01"
-              value={campaignResults.conversionRate}
-              onChange={(e) => setCampaignResults(prev => ({
-                ...prev,
-                conversionRate: parseFloat(e.target.value)
-              }))}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Revenue</label>
-            <input
-              type="number"
-              value={campaignResults.revenue}
-              onChange={(e) => setCampaignResults(prev => ({
-                ...prev,
-                revenue: parseFloat(e.target.value)
-              }))}
-              className="w-full p-2 border rounded"
-            />
-          </div>
-        </div>
-        
-        <button
-          onClick={handleSubmit}
-          className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-        >
-          Submit Feedback
-        </button>
-      </div>
-    </div>
-  );
-};
-```
+### Chat Interface
+- Real-time message streaming via SSE
+- Intent analysis and authentication prompts
+- Campaign recommendation display
+- Dummy data generation for testing
+
+### Data Sources
+- Connect data sources (GTM, Facebook Pixel, Shopify)
+- Generate dummy data for testing
+- Data source status management

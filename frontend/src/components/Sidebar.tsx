@@ -1,33 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store';
 import ChatHistory from './ChatHistory';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
 import { logout } from '../store/slices/authSlice';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 interface SidebarProps {
-  activePanel: 'chat' | 'data-sources';
-  setActivePanel: (panel: 'chat' | 'data-sources') => void;
-  onSelectConversation: (id: string) => void;
-  currentConversationId?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ 
-  activePanel, 
-  setActivePanel, 
-  onSelectConversation,
-  currentConversationId
-}) => {
+const Sidebar: React.FC<SidebarProps> = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const user = useSelector((state: RootState) => state.auth.user);
   const isAnonymous = !user;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { 
+    pathname = '/'
+  } = location;
+  const activePanel = pathname === '/data-sources' ? 'data-sources' : 'chat'
 
-  console.log({
-    user
-  })
+
+  const path = window.location.pathname;
+  const id = path.split('/').pop();
+
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(id);
+  const handleSelectConversation = (id: string) => {
+    navigate(`/chat/${id}`);
+  };
+
+  useEffect(() => {
+    setCurrentConversationId(id);
+  }, [id])
+
   return (
     <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col justify-between hidden sm:block">
       {/* Logo */}
@@ -46,10 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* New Chat - only show for authenticated users */}
           {!isAnonymous && (
             <button
-              onClick={() => {
-                setActivePanel('chat');
-                onSelectConversation('');
-              }}
+              onClick={() => navigate('/')}
               className="w-full flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <div className="w-5 h-5 flex items-center justify-center">
@@ -64,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Data Sources - only show for authenticated users */}
           {!isAnonymous && (
             <button
-              onClick={() => setActivePanel('data-sources')}
+              onClick={() => navigate('/data-sources')}
               className={`w-full flex items-center space-x-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activePanel === 'data-sources' 
                   ? 'bg-gray-100 text-gray-900' 
@@ -82,10 +87,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         </nav>
         
         {/* Chat History - only show for authenticated users */}
-        {!isAnonymous && activePanel === 'chat' && (
+        {!isAnonymous &&  (
           <div className="mt-6">
             <ChatHistory 
-              onSelectConversation={onSelectConversation}
+              onSelectConversation={handleSelectConversation}
               activeConversationId={currentConversationId}
             />
           </div>

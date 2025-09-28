@@ -3,6 +3,8 @@ import { useSendMessageMutation, useCreateConversationMutation, useGetConversati
 import { useStreamingResponse } from '../hooks/useStreamingResponse';
 import LoginModal from './LoginModal';
 import SignupModal from './SignupModal';
+import { useNavigate } from 'react-router-dom';
+import { useAddDummyDataMutation } from '../store/api/dataSourcesApi';
 
 interface ChatAreaProps {
   currentQuery: string;
@@ -26,6 +28,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   conversationId,
   onConversationCreated 
 }) => {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +38,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [sendMessage] = useSendMessageMutation();
   const [createConversation] = useCreateConversationMutation();
+  const [addDummyData] = useAddDummyDataMutation();
   
   // Load conversation messages when a conversation is selected
   const { data: conversationData, isLoading: isLoadingConversation } = useGetConversationQuery(
@@ -385,9 +389,24 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h5 className="font-medium text-yellow-900 mb-2">No Data Sources Connected</h5>
                     <p className="text-sm text-yellow-800 mb-3">{campaignRecommendations.message}</p>
-                    <button className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors">
-                      Connect Data Sources
-                    </button>
+                    <div className="flex gap-4">
+                      <button 
+                        className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                        onClick={() => {
+                          navigate('/data-sources');
+                        }}
+                      >
+                        Connect Data Sources
+                      </button>
+                      <button 
+                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                        onClick={() => {
+                          addDummyData('gtm').unwrap()
+                        }}
+                      >
+                        Add dummy data
+                      </button>
+                    </div>
                   </div>
                 ) : campaignRecommendations.type === 'campaign_recommendation' && campaignRecommendations.data ? (
                   <div className="space-y-4">
