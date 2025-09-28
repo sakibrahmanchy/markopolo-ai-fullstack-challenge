@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Stream</title>
+</head>
+<body>
+    <h1>Test Stream Connection</h1>
+    <div id="output"></div>
+    <button onclick="testStream()">Test Stream</button>
+    
+    <script>
+        function testStream() {
+            const conversationId = 'ef08dc88-d115-4dd9-8651-19b403eeaddb';
+            const url = `http://localhost:5900/conversations/${conversationId}/stream`;
+            
+            console.log('Testing stream with URL:', url);
+            
+            const eventSource = new EventSource(url);
+            
+            eventSource.onopen = () => {
+                console.log('SSE connection opened');
+                document.getElementById('output').innerHTML += '<p>SSE connection opened</p>';
+            };
+            
+            eventSource.onmessage = (event) => {
+                console.log('Received message:', event.data);
+                document.getElementById('output').innerHTML += `<p>Message: ${event.data}</p>`;
+            };
+            
+            eventSource.onerror = (error) => {
+                console.error('SSE error:', error);
+                document.getElementById('output').innerHTML += `<p>Error: ${error}</p>`;
+            };
+        }
+    </script>
+</body>
+</html>
