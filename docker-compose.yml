@@ -1,0 +1,100 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: pulsehub-postgres
+    environment:
+      POSTGRES_DB: pulsehub
+      POSTGRES_USER: pulsehub
+      POSTGRES_PASSWORD: pulsehub123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - pulsehub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulsehub -d pulsehub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pulsehub-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pulsehub-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pulsehub-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://pulsehub:pulsehub123@postgres:5432/pulsehub
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: pulsehub
+      DATABASE_PASSWORD: pulsehub123
+      DATABASE_NAME: pulsehub
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: 
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
+      JWT_EXPIRES_IN: 50000m
+      JWT_REFRESH_EXPIRES_IN: 604800
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: gpt-4o-mini
+      OPENAI_TEMPERATURE: 0.7
+      OPENAI_MAX_TOKENS: 1000
+      PORT: 5900
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "5900:5900"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pulsehub-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5900/api}
+    container_name: pulsehub-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - pulsehub-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  pulsehub-network:
+    driver: bridge
