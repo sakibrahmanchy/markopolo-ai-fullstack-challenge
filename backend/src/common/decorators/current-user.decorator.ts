@@ -26,10 +26,8 @@ export const CurrentUser = createParamDecorator(
       });
       
       const payload = jwtService.verify(token);
-      console.log('CurrentUser decorator - payload:', payload);
       return payload.sub || 'anonymous';
     } catch (error) {
-      console.log('CurrentUser decorator - error verifying token:', error.message);
       // Token is invalid or expired, return anonymous
       return 'anonymous';
     }
